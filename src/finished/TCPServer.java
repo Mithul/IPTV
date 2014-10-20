@@ -45,7 +45,6 @@ public class TCPServer {
         opencv_core.IplImage frame = grabber.grab();
         opencv_core.IplImage image = null;
 
-        IplImage i = new IplImage();
 
         CanvasFrame canvasFrame = new CanvasFrame("Some Title");
         canvasFrame.setCanvasSize(frame.width(), frame.height());
@@ -70,7 +69,6 @@ public class TCPServer {
             cvCvtColor(frame, image, CV_RGB2GRAY);
 
 //            canvasFrame.showImage(frame);
-            i.ipi = frame;
 
             BufferedImage b = new BufferedImage(frame.width(), frame.height(), BufferedImage.TYPE_INT_RGB);
             image.copyTo(b);

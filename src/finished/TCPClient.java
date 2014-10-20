@@ -6,12 +6,9 @@
 package finished;
 
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
 import java.net.Socket;
 import javax.imageio.ImageIO;
 import org.bytedeco.javacpp.opencv_core;
@@ -19,10 +16,6 @@ import static org.bytedeco.javacpp.opencv_core.IPL_DEPTH_8U;
 import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_core.Size;
 import static org.bytedeco.javacpp.opencv_core.cvClearMemStorage;
-import static org.bytedeco.javacpp.opencv_imgproc.CV_GAUSSIAN;
-import static org.bytedeco.javacpp.opencv_imgproc.CV_RGB2GRAY;
-import static org.bytedeco.javacpp.opencv_imgproc.cvCvtColor;
-import static org.bytedeco.javacpp.opencv_imgproc.cvSmooth;
 import org.bytedeco.javacv.CanvasFrame;
 
 /**
@@ -42,7 +35,6 @@ public class TCPClient {
             opencv_core.IplImage prevImage = null;
             opencv_core.IplImage diff = null;
 
-            IplImage i = new IplImage();
 
             CanvasFrame canvasFrame = new CanvasFrame("Some Title");
             canvasFrame.setCanvasSize(640, 480);
