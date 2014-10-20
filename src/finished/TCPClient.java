@@ -16,6 +16,8 @@ import java.net.Socket;
 import javax.imageio.ImageIO;
 import org.bytedeco.javacpp.opencv_core;
 import static org.bytedeco.javacpp.opencv_core.IPL_DEPTH_8U;
+import org.bytedeco.javacpp.opencv_core.Mat;
+import org.bytedeco.javacpp.opencv_core.Size;
 import static org.bytedeco.javacpp.opencv_core.cvClearMemStorage;
 import static org.bytedeco.javacpp.opencv_imgproc.CV_GAUSSIAN;
 import static org.bytedeco.javacpp.opencv_imgproc.CV_RGB2GRAY;
@@ -50,8 +52,8 @@ public class TCPClient {
             Socket skt = new Socket("localhost", 1234);
             InputStream in = skt.getInputStream();
             DataInputStream dis = new DataInputStream(in);
-            
-            image = opencv_core.IplImage.create(640, 480, IPL_DEPTH_8U, 1);
+
+            image = opencv_core.IplImage.create(480, 480, IPL_DEPTH_8U, 1);
 //            InputStream is = skt.getInputStream();
 //            ObjectInputStream ois = new ObjectInputStream(skt.getInputStream());
             System.out.print("Received string: '");
@@ -74,7 +76,11 @@ public class TCPClient {
                 System.out.println(img + "\t" + imageBytes);
                 image.copyFrom(img);
                 System.out.println(image);
-                canvasFrame.showImage(image);
+                Mat m = new Mat(image);
+                Mat resizeimage = new Mat();
+                Size sz = new Size(640, 480);
+                org.bytedeco.javacpp.opencv_imgproc.resize(m, resizeimage, sz);
+                canvasFrame.showImage(resizeimage);
             }
 
 //            System.out.println(in.readLine()); // Read one line and output it

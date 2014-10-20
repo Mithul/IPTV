@@ -73,7 +73,7 @@ public class TCPServer {
             i.ipi = frame;
 
             BufferedImage b = new BufferedImage(frame.width(), frame.height(), BufferedImage.TYPE_INT_RGB);
-            frame.copyTo(b);
+            image.copyTo(b);
             ByteArrayOutputStream bScrn = new ByteArrayOutputStream();
             ImageIO.write(b, "PNG", bScrn);
             byte[] imgByte = bScrn.toByteArray();
