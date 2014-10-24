@@ -6,12 +6,9 @@
 package finished;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -38,13 +35,14 @@ public class TCPServer {
     private static byte[] imageBytes;
     private static opencv_core.IplImage image;
     private static CanvasFrame canvasFrame;
-    private static Socket skt;
     private static OutputStream out;
-    private static DataOutputStream dos;
+    private static DataOutputStream dos[];
+    private static int noClients;
 
-    private static void createConnection(ServerSocket srvr) {
+    private static DataOutputStream createConnection(ServerSocket srvr) {
+        DataOutputStream dos = null;
         try {
-            skt = srvr.accept();
+            Socket skt = srvr.accept();
             System.out.print("Server has connected!\n");
 
             out = skt.getOutputStream();
@@ -52,6 +50,7 @@ public class TCPServer {
         } catch (IOException ex) {
             Logger.getLogger(TCPServer.class.getName()).log(Level.SEVERE, null, ex);
         }
+        return dos;
     }
 
     private static void sendImage(DataOutputStream dos, opencv_core.IplImage frame) {
@@ -69,6 +68,15 @@ public class TCPServer {
         }
     }
 
+    private static void clientService(ServerSocket srvr, int noClients) {
+        TCPServer.noClients = noClients;
+        dos = new DataOutputStream[noClients];
+        for (int i = 0; i < noClients; i++) {
+            dos[i] = createConnection(srvr);
+        }
+
+    }
+
     public static void main(String args[]) throws IOException, FrameGrabber.Exception {
 
         OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);
@@ -83,8 +91,9 @@ public class TCPServer {
         opencv_core.CvMemStorage storage = opencv_core.CvMemStorage.create();
 
         ServerSocket srvr = new ServerSocket(1234);
+        System.out.print("Server has created Socket\n");
 
-        createConnection(srvr);
+        clientService(srvr, 2);
 
         while (canvasFrame.isVisible() && (frame = grabber.grab()) != null) {
             cvClearMemStorage(storage);
@@ -93,7 +102,9 @@ public class TCPServer {
             image = opencv_core.IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
             cvCvtColor(frame, image, CV_RGB2GRAY);
 
-            sendImage(dos, frame);
+            for (int i = 0; i < noClients; i++) {
+                sendImage(dos[i], frame);
+            }
 
             /*InputStream in = new ByteArrayInputStream(imgByte);
              BufferedImage img = ImageIO.read(in);
@@ -102,13 +113,11 @@ public class TCPServer {
              System.out.println(" imgByte " + b + "\t");
              System.out.println(" imgByte " + img + "\t");
              */
-            
             System.out.println("Sent\t" + frame + "\t");
             canvasFrame.showImage(frame);
 
         }
 
-        skt.close();
         srvr.close();
         System.out.print("Whoops! It didn't work!\n");
 
