@@ -68,11 +68,11 @@ public class TCPServer {
         }
     }
 
-    private static void clientService(ServerSocket srvr, int noClients) {
-        TCPServer.noClients = noClients;
+    public static void clientService(ServerSocket srvr, int noClients) {
         dos = new DataOutputStream[noClients];
         for (int i = 0; i < noClients; i++) {
             dos[i] = createConnection(srvr);
+            TCPServer.noClients++;
         }
 
     }
@@ -81,6 +81,8 @@ public class TCPServer {
 
         OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);
         grabber.start();
+
+        noClients = 0;
 
         opencv_core.IplImage frame = grabber.grab();
         image = null;
@@ -93,7 +95,9 @@ public class TCPServer {
         ServerSocket srvr = new ServerSocket(1234);
         System.out.print("Server has created Socket\n");
 
-        clientService(srvr, 2);
+        MyRunnable m = new MyRunnable(srvr);
+        Thread t = new Thread(m);
+        t.start();
 
         while (canvasFrame.isVisible() && (frame = grabber.grab()) != null) {
             cvClearMemStorage(storage);
@@ -101,6 +105,8 @@ public class TCPServer {
             cvSmooth(frame, frame, CV_GAUSSIAN, 9, 9, 2, 2);
             image = opencv_core.IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
             cvCvtColor(frame, image, CV_RGB2GRAY);
+
+            System.out.println(noClients);
 
             for (int i = 0; i < noClients; i++) {
                 sendImage(dos[i], frame);
@@ -125,4 +131,17 @@ public class TCPServer {
         canvasFrame.dispose();
     }
 
+}
+
+class MyRunnable implements Runnable {
+
+    ServerSocket srvr;
+
+    MyRunnable(ServerSocket srvr) {
+        this.srvr = srvr;
+    }
+
+    public void run() {
+        TCPServer.clientService(srvr, 2);
+    }
 }
