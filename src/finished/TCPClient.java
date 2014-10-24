@@ -8,8 +8,11 @@ package finished;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import org.bytedeco.javacpp.opencv_core;
 import static org.bytedeco.javacpp.opencv_core.IPL_DEPTH_8U;
@@ -25,54 +28,66 @@ import org.bytedeco.javacv.CanvasFrame;
 public class TCPClient {
 
     private static byte[] imageBytes;
+    private static opencv_core.IplImage image;
+    private static CanvasFrame canvasFrame;
+    private static Socket skt;
+    private static InputStream in;
+    private static DataInputStream dis;
+
+    private static void createConnection(String ip, int port) {
+        try {
+            skt = new Socket(ip, port);
+            in = skt.getInputStream();
+            dis = new DataInputStream(in);
+        } catch (IOException ex) {
+            Logger.getLogger(TCPClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private static Mat getImage() {
+
+        Mat resizeimage = new Mat();
+        try {
+            int len = dis.readInt();
+            imageBytes = new byte[len];
+
+            dis.readFully(imageBytes);
+
+            InputStream in1 = new ByteArrayInputStream(imageBytes);
+            BufferedImage img = ImageIO.read(in1);
+            System.out.println(img + "\t" + imageBytes);
+            image.copyFrom(img);
+
+            System.out.println(image);
+            Mat m = new Mat(image);
+            Size sz = new Size(640, 480);
+            org.bytedeco.javacpp.opencv_imgproc.resize(m, resizeimage, sz);
+        } catch (IOException ex) {
+            Logger.getLogger(TCPClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return resizeimage;
+    }
 
     public static void main(String args[]) {
         try {
-//            opencv_core.IplImage frame = grabber.grab();
-            opencv_core.IplImage frame = null;
 
-            opencv_core.IplImage image = null;
-            opencv_core.IplImage prevImage = null;
-            opencv_core.IplImage diff = null;
+            createConnection("localhost",1234);
+            
+            image = null;
 
-
-            CanvasFrame canvasFrame = new CanvasFrame("Some Title");
+            canvasFrame = new CanvasFrame("Some Title");
             canvasFrame.setCanvasSize(640, 480);
 
             opencv_core.CvMemStorage storage = opencv_core.CvMemStorage.create();
 
-            Socket skt = new Socket("localhost", 1234);
-            InputStream in = skt.getInputStream();
-            DataInputStream dis = new DataInputStream(in);
-
             image = opencv_core.IplImage.create(480, 480, IPL_DEPTH_8U, 1);
-//            InputStream is = skt.getInputStream();
-//            ObjectInputStream ois = new ObjectInputStream(skt.getInputStream());
-            System.out.print("Received string: '");
 
-//            while (!is.ready()) {
-//            }
             while (true) {
                 cvClearMemStorage(storage);
-//                cvSmooth(frame, frame, CV_GAUSSIAN, 9, 9, 2, 2);
-//                image = opencv_core.IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
-//                cvCvtColor(frame, image, CV_RGB2GRAY);
-//                is.read(imageBytes);
-//                Object o = ois.readObject();
-
-                int len = dis.readInt();
-                imageBytes = new byte[len];
-                dis.readFully(imageBytes);
-                InputStream in1 = new ByteArrayInputStream(imageBytes);
-                BufferedImage img = ImageIO.read(in1);
-                System.out.println(img + "\t" + imageBytes);
-                image.copyFrom(img);
-                System.out.println(image);
-                Mat m = new Mat(image);
-                Mat resizeimage = new Mat();
-                Size sz = new Size(640, 480);
-                org.bytedeco.javacpp.opencv_imgproc.resize(m, resizeimage, sz);
-                canvasFrame.showImage(resizeimage);
+                
+                Mat dispImage = getImage();
+                
+                canvasFrame.showImage(dispImage);
             }
 
 //            System.out.println(in.readLine()); // Read one line and output it
