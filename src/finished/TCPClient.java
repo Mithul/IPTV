@@ -82,7 +82,7 @@ public class TCPClient {
 
             image = opencv_core.IplImage.create(480, 480, IPL_DEPTH_8U, 1);
 
-            while (true) {
+            while (canvasFrame.isVisible()) {
                 cvClearMemStorage(storage);
                 
                 Mat dispImage = getImage();

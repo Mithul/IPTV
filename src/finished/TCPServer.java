@@ -8,14 +8,15 @@ package finished;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import org.bytedeco.javacpp.opencv_core;
 import static org.bytedeco.javacpp.opencv_core.IPL_DEPTH_8U;
@@ -35,41 +36,26 @@ import org.bytedeco.javacv.OpenCVFrameGrabber;
 public class TCPServer {
 
     private static byte[] imageBytes;
+    private static opencv_core.IplImage image;
+    private static CanvasFrame canvasFrame;
+    private static Socket skt;
+    private static OutputStream out;
+    private static DataOutputStream dos;
 
-    public static void main(String args[]) throws IOException, FrameGrabber.Exception {
-        String data = "Toobie ornaught toobie";
+    private static void createConnection(ServerSocket srvr) {
+        try {
+            skt = srvr.accept();
+            System.out.print("Server has connected!\n");
 
-        OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);
-        grabber.start();
+            out = skt.getOutputStream();
+            dos = new DataOutputStream(out);
+        } catch (IOException ex) {
+            Logger.getLogger(TCPServer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 
-        opencv_core.IplImage frame = grabber.grab();
-        opencv_core.IplImage image = null;
-
-
-        CanvasFrame canvasFrame = new CanvasFrame("Some Title");
-        canvasFrame.setCanvasSize(frame.width(), frame.height());
-
-        opencv_core.CvMemStorage storage = opencv_core.CvMemStorage.create();
-
-        ServerSocket srvr = new ServerSocket(1234);
-        Socket skt = srvr.accept();
-        System.out.print("Server has connected!\n");
-
-        OutputStream out = skt.getOutputStream();
-        DataOutputStream dos = new DataOutputStream(out);
-//        PrintWriter out = new PrintWriter(skt.getOutputStream(), true);
-//        OutputStream out1 = skt.getOutputStream();
-
-//        ObjectOutputStream oos = new ObjectOutputStream(skt.getOutputStream());
-        while (canvasFrame.isVisible() && (frame = grabber.grab()) != null) {
-            cvClearMemStorage(storage);
-
-            cvSmooth(frame, frame, CV_GAUSSIAN, 9, 9, 2, 2);
-            image = opencv_core.IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
-            cvCvtColor(frame, image, CV_RGB2GRAY);
-
-//            canvasFrame.showImage(frame);
-
+    private static void sendImage(DataOutputStream dos, opencv_core.IplImage frame) {
+        try {
             BufferedImage b = new BufferedImage(frame.width(), frame.height(), BufferedImage.TYPE_INT_RGB);
             image.copyTo(b);
             ByteArrayOutputStream bScrn = new ByteArrayOutputStream();
@@ -78,24 +64,50 @@ public class TCPServer {
 
             dos.writeInt(imgByte.length);
             dos.write(imgByte, 0, imgByte.length);
+        } catch (IOException ex) {
+            Logger.getLogger(TCPServer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 
-            InputStream in = new ByteArrayInputStream(imgByte);
-            BufferedImage img = ImageIO.read(in);
-            image.copyFrom(img);
+    public static void main(String args[]) throws IOException, FrameGrabber.Exception {
 
-            System.out.println(" imgByte " + b + "\t");
-            System.out.println(" imgByte " + img + "\t");
+        OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);
+        grabber.start();
 
-//            oos.writeObject(imgByte);
+        opencv_core.IplImage frame = grabber.grab();
+        image = null;
+
+        canvasFrame = new CanvasFrame("Some Title");
+        canvasFrame.setCanvasSize(frame.width(), frame.height());
+
+        opencv_core.CvMemStorage storage = opencv_core.CvMemStorage.create();
+
+        ServerSocket srvr = new ServerSocket(1234);
+
+        createConnection(srvr);
+
+        while (canvasFrame.isVisible() && (frame = grabber.grab()) != null) {
+            cvClearMemStorage(storage);
+
+            cvSmooth(frame, frame, CV_GAUSSIAN, 9, 9, 2, 2);
+            image = opencv_core.IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
+            cvCvtColor(frame, image, CV_RGB2GRAY);
+
+            sendImage(dos, frame);
+
+            /*InputStream in = new ByteArrayInputStream(imgByte);
+             BufferedImage img = ImageIO.read(in);
+             image.copyFrom(img);
+
+             System.out.println(" imgByte " + b + "\t");
+             System.out.println(" imgByte " + img + "\t");
+             */
+            
             System.out.println("Sent\t" + frame + "\t");
-//            out1.write(imgByte);
             canvasFrame.showImage(frame);
 
-            // recognize contours
         }
 
-//        System.out.print("Sending string: '" + data + "'\n");
-//        out.close();
         skt.close();
         srvr.close();
         System.out.print("Whoops! It didn't work!\n");
