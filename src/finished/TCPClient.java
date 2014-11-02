@@ -5,6 +5,7 @@
  */
 package finished;
 
+import static finished.TCPServer.start;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -14,27 +15,29 @@ import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import javax.swing.SwingWorker;
 import org.bytedeco.javacpp.opencv_core;
 import static org.bytedeco.javacpp.opencv_core.IPL_DEPTH_8U;
 import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_core.Size;
 import static org.bytedeco.javacpp.opencv_core.cvClearMemStorage;
 import org.bytedeco.javacv.CanvasFrame;
+import org.bytedeco.javacv.FrameGrabber;
 
 /**
  *
  * @author mithul
  */
-public class TCPClient {
+public class TCPClient extends SwingWorker<Void, Void> {
 
-    private static byte[] imageBytes;
-    private static opencv_core.IplImage image;
-    private static CanvasFrame canvasFrame;
-    private static Socket skt;
-    private static InputStream in;
-    private static DataInputStream dis;
+    private byte[] imageBytes;
+    private opencv_core.IplImage image;
+    private CanvasFrame canvasFrame;
+    private Socket skt;
+    private InputStream in;
+    private DataInputStream dis;
 
-    private static void createConnection(String ip, int port) {
+    private void createConnection(String ip, int port) {
         try {
             skt = new Socket(ip, port);
             in = skt.getInputStream();
@@ -44,38 +47,60 @@ public class TCPClient {
         }
     }
 
-    private static Mat getImage() {
+    private Mat getImage() {
 
         Mat resizeimage = new Mat();
         try {
             int len = dis.readInt();
+            if (len < 0) {
+                return null;
+            }
             imageBytes = new byte[len];
 
             dis.readFully(imageBytes);
 
             InputStream in1 = new ByteArrayInputStream(imageBytes);
             BufferedImage img = ImageIO.read(in1);
-            System.out.println(img + "\t" + imageBytes);
+            System.out.println("Received\t" + len);
+            if (img == null) {
+                return null;
+            }
             image.copyFrom(img);
 
-            System.out.println(image);
+            //System.out.println(image);
             Mat m = new Mat(image);
             Size sz = new Size(640, 480);
             org.bytedeco.javacpp.opencv_imgproc.resize(m, resizeimage, sz);
         } catch (IOException ex) {
             Logger.getLogger(TCPClient.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return resizeimage;
+        if (!resizeimage.empty()) {
+            return resizeimage;
+        } else {
+            return null;
+        }
     }
 
-    public static void main(String args[]) {
+    TCPClient(String ip) {
+        createConnection(ip, 1234);
+    }
+
+    @Override
+    public Void doInBackground() throws IOException, FrameGrabber.Exception {
+        start();
+        return null;
+    }
+
+    @Override
+    public void done() {
+    }
+
+    public void start() {
         try {
 
-            createConnection("localhost",1234);
-            
             image = null;
 
-            canvasFrame = new CanvasFrame("Some Title");
+            canvasFrame = new CanvasFrame("Client");
             canvasFrame.setCanvasSize(640, 480);
 
             opencv_core.CvMemStorage storage = opencv_core.CvMemStorage.create();
@@ -84,10 +109,11 @@ public class TCPClient {
 
             while (canvasFrame.isVisible()) {
                 cvClearMemStorage(storage);
-                
+
                 Mat dispImage = getImage();
-                
-                canvasFrame.showImage(dispImage);
+                if (dispImage != null) {
+                    canvasFrame.showImage(dispImage);
+                }
             }
 
 //            System.out.println(in.readLine()); // Read one line and output it

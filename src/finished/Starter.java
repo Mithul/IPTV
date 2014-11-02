@@ -3,8 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package finished;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JOptionPane;
+import org.bytedeco.javacv.FrameGrabber;
 
 /**
  *
@@ -12,10 +19,14 @@ package finished;
  */
 public class Starter extends javax.swing.JFrame {
 
+    private static ArrayList<TCPClient> clients;
+    private static TCPServer server;
+
     /**
      * Creates new form Starter
      */
     public Starter() {
+        clients = new ArrayList<>();
         initComponents();
     }
 
@@ -35,12 +46,15 @@ public class Starter extends javax.swing.JFrame {
         jPanel2 = new javax.swing.JPanel();
         startServer = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
-        jLabel3 = new javax.swing.JLabel();
+        noClients = new javax.swing.JLabel();
         refresh = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("IPTV");
 
         jPanel1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+
+        servIp.setText("localhost");
 
         jLabel1.setText("Server IP Address");
 
@@ -82,12 +96,22 @@ public class Starter extends javax.swing.JFrame {
         jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
 
         startServer.setText("Start Server");
+        startServer.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                startServerActionPerformed(evt);
+            }
+        });
 
         jLabel2.setText("Number Of Clients Connected");
 
-        jLabel3.setText("0");
+        noClients.setText("0");
 
         refresh.setText("Refresh");
+        refresh.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                refreshActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -104,7 +128,7 @@ public class Starter extends javax.swing.JFrame {
                         .addGap(0, 29, Short.MAX_VALUE)
                         .addComponent(jLabel2)
                         .addGap(18, 18, 18)
-                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(noClients, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(26, 26, 26))
         );
         jPanel2Layout.setVerticalGroup(
@@ -113,7 +137,7 @@ public class Starter extends javax.swing.JFrame {
                 .addGap(26, 26, 26)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
-                    .addComponent(jLabel3))
+                    .addComponent(noClients))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(refresh)
@@ -146,8 +170,27 @@ public class Starter extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void startClientActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startClientActionPerformed
-        
+        if (server != null) {
+            TCPClient c = new TCPClient(servIp.getText());
+            c.execute();
+            clients.add(c);
+        } else {
+            JOptionPane.showMessageDialog(null, "Start server first");
+        }
     }//GEN-LAST:event_startClientActionPerformed
+
+    private void startServerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startServerActionPerformed
+        if (server == null) {
+            server = new TCPServer();
+            server.execute();
+        } else {
+            JOptionPane.showMessageDialog(null, "Server already running !");
+        }
+    }//GEN-LAST:event_startServerActionPerformed
+
+    private void refreshActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refreshActionPerformed
+        noClients.setText(String.valueOf(clients.size()));
+    }//GEN-LAST:event_refreshActionPerformed
 
     /**
      * @param args the command line arguments
@@ -187,9 +230,9 @@ public class Starter extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JLabel noClients;
     private javax.swing.JButton refresh;
     private javax.swing.JTextField servIp;
     private javax.swing.JButton startClient;
